@@ -1,0 +1,202 @@
+CANTON-OH-ASA-01# show run
+: Saved
+: 
+: Serial Number: JMX1009K0M3
+: Hardware:   ASA5540, 2048 MB RAM, CPU Pentium 4 2000 MHz
+:
+ASA Version 9.1(7)32 
+!
+hostname CANTON-OH-ASA-01
+enable password HkB37F8Hs5MT0Vgz encrypted
+xlate per-session deny tcp any4 any4
+xlate per-session deny tcp any4 any6
+xlate per-session deny tcp any6 any4
+xlate per-session deny tcp any6 any6
+xlate per-session deny udp any4 any4 eq domain
+xlate per-session deny udp any4 any6 eq domain
+xlate per-session deny udp any6 any4 eq domain
+xlate per-session deny udp any6 any6 eq domain
+names
+ip local pool SSLClientPool 192.168.100.1-192.168.100.50 mask 255.255.255.0
+!
+interface GigabitEthernet0/0
+ nameif outside
+ security-level 0
+ ip address 192.168.1.250 255.255.255.0 
+!
+interface GigabitEthernet0/1
+ description inside
+ nameif inside
+ security-level 100
+ ip address 192.168.133.1 255.255.255.0 
+!
+interface GigabitEthernet0/2
+ nameif inside33
+ security-level 100
+ no ip address
+!
+interface GigabitEthernet0/3
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+interface Management0/0
+ shutdown
+ no nameif
+ no security-level
+ no ip address
+!
+ftp mode passive
+object network inside-subnet
+ subnet 192.168.133.0 255.255.255.0
+object network inside-nat
+ subnet 192.168.33.0 255.255.255.0
+object network guest-nat
+ subnet 192.168.66.0 255.255.255.0
+object network INSIDE
+ subnet 192.168.33.0 255.255.255.0
+object network inside33-subnet
+object network vpndhcp
+ subnet 192.168.100.0 255.255.255.0
+access-list SSLClient standard permit 192.168.33.0 255.255.255.0 
+access-list SSLClient standard permit 192.168.133.0 255.255.255.0 
+access-list no_nat extended permit ip 192.168.33.0 255.255.255.0 192.168.100.0 255.255.255.0 
+pager lines 24
+mtu outside 1500
+mtu inside 1500
+mtu inside33 1500
+no failover
+icmp unreachable rate-limit 1 burst-size 1
+no asdm history enable
+arp timeout 14400
+no arp permit-nonconnected
+nat (inside,outside) source static inside-nat inside-nat destination static vpndhcp vpndhcp
+!             
+object network inside-subnet
+ nat (inside,outside) dynamic interface
+object network inside-nat
+ nat (inside,outside) dynamic interface
+route outside 0.0.0.0 0.0.0.0 192.168.1.1 1 
+route inside 192.168.33.0 255.255.255.0 192.168.133.2 1 
+timeout xlate 3:00:00
+timeout pat-xlate 0:00:30
+timeout conn 1:00:00 half-closed 0:10:00 udp 0:02:00 icmp 0:00:02
+timeout sunrpc 0:10:00 h323 0:05:00 h225 1:00:00 mgcp 0:05:00 mgcp-pat 0:05:00
+timeout sip 0:30:00 sip_media 0:02:00 sip-invite 0:03:00 sip-disconnect 0:02:00
+timeout sip-provisional-media 0:02:00 uauth 0:05:00 absolute
+timeout tcp-proxy-reassembly 0:01:00
+timeout floating-conn 0:00:00
+dynamic-access-policy-record DfltAccessPolicy
+user-identity default-domain LOCAL
+no snmp-server location
+no snmp-server contact
+crypto ipsec security-association pmtu-aging infinite
+crypto ca trustpoint localtrust
+ enrollment self
+ fqdn sslvpn.mycompany.com
+ subject-name CN=sslvpn.mycompany.com
+ keypair sslvpnkey
+ crl configure
+crypto ca trustpool policy
+crypto ca certificate chain localtrust
+ certificate 5973a55e
+    308201ff 30820168 a0030201 02020459 73a55e30 0d06092a 864886f7 0d010105 
+    05003044 311d301b 06035504 03131473 736c7670 6e2e6d79 636f6d70 616e792e 
+    636f6d31 23302106 092a8648 86f70d01 09021614 73736c76 706e2e6d 79636f6d 
+    70616e79 2e636f6d 301e170d 32303035 30323132 35373134 5a170d33 30303433 
+    30313235 3731345a 3044311d 301b0603 55040313 1473736c 76706e2e 6d79636f 
+    6d70616e 792e636f 6d312330 2106092a 864886f7 0d010902 16147373 6c76706e 
+    2e6d7963 6f6d7061 6e792e63 6f6d3081 9f300d06 092a8648 86f70d01 01010500 
+    03818d00 30818902 818100bc 6af7e3ea 3953d8ff 98e4fd78 f0f27344 0c9e5d1f 
+    4ac65ee4 50d09b1b 85efd4f6 a16d8176 1177c797 24734870 bde50951 a55b367f 
+    78c71235 7f086c29 61aceffa f33169fc c14e4f9f cb95df19 f2e3a4b6 030fa188 
+    d51b92ff 92108b81 8d5a25ce 43e49534 9ca9a3b8 69c208da e51eaf54 0ee9b9df 
+    626790fc 97a6bf5f c172d302 03010001 300d0609 2a864886 f70d0101 05050003 
+    818100ae 53300e70 0c5583db 65bf62c6 274b4c3d 1d1ce7f0 23d1abbd 420c0ba1 
+    4c8edb4e deda3e31 a508148e 6953892b 35195d1a 06a21a5c c0397b1d e4d03aec 
+    89dc6783 49d9732f 72d6e968 d799beb0 0c378742 8bf40f93 97b4b488 94a3a9ec 
+    da392edd 618ed80b b355057f c640813a 413aa1ef ae2bc57c 20edc54f 1aa0c27d 
+    27d342
+  quit
+telnet timeout 5
+ssh stricthostkeycheck
+ssh timeout 5
+ssh key-exchange group dh-group1-sha1
+console timeout 0
+dhcpd dns 8.8.8.8 8.8.4.4
+!
+threat-detection basic-threat
+threat-detection statistics access-list
+no threat-detection statistics tcp-intercept
+ssl trust-point localtrust outside
+webvpn
+ enable outside
+ anyconnect image disk0:/anyconnect-win-4.8.03052-webdeploy-k9.pkg 1
+ anyconnect enable
+ tunnel-group-list enable
+ cache
+  disable
+group-policy SSLCLient internal
+group-policy SSLCLient attributes
+ dns-server value 8.8.8.8
+ vpn-tunnel-protocol ssl-client 
+ split-tunnel-policy tunnelspecified
+ split-tunnel-network-list value SSLClient
+ default-domain value mysite.com
+ address-pools value SSLClientPool
+username jstrass33 password 
+username jstrass33 attributes
+ service-type remote-access
+username lswisher password 
+username lswisher attributes
+ service-type remote-access
+tunnel-group SSLClient type remote-access
+tunnel-group SSLClient general-attributes
+ default-group-policy SSLCLient
+tunnel-group SSLClient webvpn-attributes
+ group-alias MY_RA enable
+!
+class-map inspection_default
+ match default-inspection-traffic
+!
+!
+policy-map type inspect dns preset_dns_map
+ parameters
+  message-length maximum client auto
+  message-length maximum 512
+policy-map global_policy
+ class inspection_default
+  inspect dns preset_dns_map 
+  inspect ftp 
+  inspect h323 h225 
+  inspect h323 ras 
+  inspect ip-options 
+  inspect netbios 
+  inspect rsh 
+  inspect rtsp 
+  inspect skinny  
+  inspect esmtp 
+  inspect sqlnet 
+  inspect sunrpc 
+  inspect tftp 
+  inspect sip  
+  inspect xdmcp 
+  inspect icmp 
+!
+service-policy global_policy global
+prompt hostname context 
+no call-home reporting anonymous
+call-home
+ profile CiscoTAC-1
+  no active
+  destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService
+  destination address email callhome@cisco.com
+  destination transport-method http
+  subscribe-to-alert-group diagnostic
+  subscribe-to-alert-group environment
+  subscribe-to-alert-group inventory periodic monthly
+  subscribe-to-alert-group configuration periodic monthly
+  subscribe-to-alert-group telemetry periodic daily
+Cryptochecksum:a4006962b09d91275df39d14332aaf34
+: end
